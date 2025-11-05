@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Raizz Capital - TV Comercial</title>
+  <title>Raizz Capital - TV Captação</title>
   <script type="module" src="https://us-east-1.online.tableau.com/javascripts/api/tableau.embedding.3.latest.min.js"></script>
   <style>
     * { margin: 0; padding: 0; }
     #vizContainer { width: 100%; height: 100vh; }
     tableau-viz { width: 100%; height: 100vh; border: none; }
   </style>
-  <link rel="icon" href="https://raizzcapital.com.br/wp-content/uploads/2024/02/logo-raizz-capital-fundo-branco.webp">
 </head>
 <body>
   <div id="vizContainer"></div>
@@ -16,45 +15,71 @@
   <script>
     const backendURL = "https://tableau-backend-h83x.onrender.com/get_tableau_url?painel=captacao";
 
+    // Map com os nomes visíveis e os slugs corretos (extraídos dos seus links)
     const dashboards = [
-      { nome: "CAPTACAO | FII DESENV iii", view: "CAPTACAOFIIDESENV-III" },
-      { nome: "CAPTACAO | UBERLANDIA", view: "CAPTACAOUBERLANDIA" }
+      { nome: "CAPTACAO | FII DESENV - III", view: "CAPTACAOFIIDESENV-III" },
+      // Se tiver outro painel específico (você só mandou esse link duas vezes), adicione aqui
+      // Exemplo:
+      { nome: "CAPTACAO | UBERLANDIA", view: "CAPTACAOUberlandia" }
     ];
 
-    const tempoPorPainel = 10000; 
+    const tempoPorPainel = 60000; // 60 segundos
     let currentIndex = 0;
     let vizElement = null;
-    let baseUrl = "";
 
-    async function carregarViz() {
-      const { embed_url, jwt } = await (await fetch(backendURL)).json();
-      baseUrl = embed_url.split("/views/")[0] + "/views/TVComercial-RaizzCapital_17543562925950/";
-      criarViz(dashboards[currentIndex].view, jwt);
-      setInterval(trocarPainel, tempoPorPainel);
+    async function fetchToken() {
+      const resp = await fetch(backendURL);
+      if (!resp.ok) throw new Error("Erro no backend: " + resp.status);
+      return resp.json();
     }
 
-    function criarViz(view, jwt) {
+    function buildEmbedUrl(embed_url, viewSlug) {
+      // Monta a URL de embed correta
+      const parts = embed_url.split("/views/");
+      const prefix = parts[0] + "/views/";
+      const after = parts[1] || "";
+      const workbookSegment = after.split("/")[0];
+      const params = embed_url.includes("?:") ? embed_url.substring(embed_url.indexOf("?:")) : "";
+      return `${prefix}${workbookSegment}/${viewSlug}${params}`;
+    }
+
+    async function criarViz(viewSlug, jwt, embed_url) {
       const container = document.getElementById("vizContainer");
       container.innerHTML = "";
+      const urlEmbed = buildEmbedUrl(embed_url, viewSlug);
+
       vizElement = document.createElement("tableau-viz");
-      vizElement.src = `${baseUrl}${view}?:embed=yes&:showAppBanner=false`;
+      vizElement.src = urlEmbed;
       vizElement.token = jwt;
       vizElement.toolbar = "hidden";
       vizElement.hideTabs = true;
       container.appendChild(vizElement);
-      console.log("Painel carregado:", view);
+
+      console.log("Carregado painel viewSlug:", viewSlug, urlEmbed);
+      vizElement.addEventListener("firstinteractive", () => {
+        console.log("✅ First interactive para", viewSlug);
+      });
     }
 
-    async function trocarPainel() {
-      currentIndex = (currentIndex + 1) % dashboards.length;
-      const { embed_url, jwt } = await (await fetch(backendURL)).json();
-      const novoPainel = dashboards[currentIndex];
-      criarViz(novoPainel.view, jwt);
-      console.log("🔁 Painel trocado para:", novoPainel.nome);
+    async function init() {
+      try {
+        const { embed_url, jwt } = await fetchToken();
+        await criarViz(dashboards[currentIndex].view, jwt, embed_url);
+
+        setInterval(async () => {
+          currentIndex = (currentIndex + 1) % dashboards.length;
+          const painel = dashboards[currentIndex];
+          const tokenData = await fetchToken();
+          await criarViz(painel.view, tokenData.jwt, tokenData.embed_url);
+          console.log("🔁 Trocou para:", painel.nome);
+        }, tempoPorPainel);
+
+      } catch (error) {
+        console.error("Erro init Captação:", error);
+      }
     }
 
-    carregarViz();
-    setTimeout(() => location.reload(true), 480000);
+    init();
   </script>
 </body>
 </html>
