@@ -15,16 +15,12 @@
 
   <script>
     const backendURL = "https://tableau-backend-h83x.onrender.com/get_tableau_url?painel=captacao";
-
-    // Map com os nomes visíveis e os slugs corretos (extraídos dos seus links)
     const dashboards = [
       { nome: "CAPTACAO | FII DESENV - III", view: "CAPTACAOFIIDESENV-III" },
-      // Se tiver outro painel específico (você só mandou esse link duas vezes), adicione aqui
-      // Exemplo:
       { nome: "CAPTACAO | UBERLANDIA", view: "CAPTACAOUBERLANDIA" }
     ];
 
-    const tempoPorPainel = 10000;
+    const tempoPorPainel = 60000;
     let currentIndex = 0;
     let vizElement = null;
 
@@ -57,7 +53,7 @@
 
       console.log("Carregado painel viewSlug:", viewSlug, urlEmbed);
       vizElement.addEventListener("firstinteractive", () => {
-        console.log("✅ First interactive para", viewSlug);
+        console.log("First interactive para", viewSlug);
       });
     }
 
@@ -71,7 +67,7 @@
           const painel = dashboards[currentIndex];
           const tokenData = await fetchToken();
           await criarViz(painel.view, tokenData.jwt, tokenData.embed_url);
-          console.log("🔁 Trocou para:", painel.nome);
+          console.log("Trocou para:", painel.nome);
         }, tempoPorPainel);
 
       } catch (error) {
