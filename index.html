@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Raizz Capital - TV Captação</title>
+  <title>Raizz Capital - TV Comercial</title>
   <script type="module" src="https://us-east-1.online.tableau.com/javascripts/api/tableau.embedding.3.latest.min.js"></script>
   <style>
     * { margin: 0; padding: 0; }
     #vizContainer { width: 100%; height: 100vh; }
+    tableau-viz { width: 100%; height: 100vh; border: none; }
   </style>
   <link rel="icon" href="https://raizzcapital.com.br/wp-content/uploads/2024/02/logo-raizz-capital-fundo-branco.webp">
 </head>
@@ -16,87 +17,43 @@
     const backendURL = "https://tableau-backend-h83x.onrender.com/get_tableau_url?painel=captacao";
 
     const dashboards = [
-      { nome: "CAPTACAO | FII DESENV - III", view: "CAPTACAOFIIDESENVIII" },
-      { nome: "CAPTACAO | UBERLANDIA", view: "CAPTACAOUberlandia" }
+      { nome: "CAPTACAO | FII DESENV lll", view: "CAPTACAOFIIDESENV-III" },
+      { nome: "CAPTACAO | UBERLANDIA", view: "CAPTACAOUBERLANDIA" }
     ];
 
-    const tempoPorPainel = 10000;
-    let currentDashboardIndex = 0;
+    const tempoPorPainel = 60000; 
+    let currentIndex = 0;
     let vizElement = null;
+    let baseUrl = "";
 
     async function carregarViz() {
-      try {
-        const response = await fetch(backendURL);
-        const data = await response.json();
-        if (data.error) throw new Error(data.error);
-
-        const { jwt } = data;
-        const container = document.getElementById("vizContainer");
-        container.innerHTML = "";
-
-        const painelAtual = dashboards[currentDashboardIndex];
-        const embed_url = `https://us-east-1.online.tableau.com/t/anabeatriz-8787706e44/views/TVCaptacao-RaizzCapital_17543951408150/${painelAtual.view}?:embed=yes&:showAppBanner=false`;
-
-        vizElement = document.createElement("tableau-viz");
-        vizElement.src = embed_url;
-        vizElement.token = jwt;
-        vizElement.toolbar = "hidden";
-        vizElement.hideTabs = true;
-        container.appendChild(vizElement);
-
-        // Quando o painel terminar de carregar, loga o nome da sheet
-        vizElement.addEventListener("firstinteractive", () => {
-          mostrarSlugAtual();
-        });
-
-        iniciarCiclo();
-        console.log("✅ Painel inicial:", painelAtual.nome);
-      } catch (error) {
-        console.error("❌ Erro ao inicializar o Tableau:", error);
-      }
-    }
-
-    async function mostrarSlugAtual() {
-      try {
-        // Espera a API do tableau-viz estar pronta
-        const workbook = vizElement.workbook;
-        if (!workbook) {
-          console.warn("⚠️ Workbook ainda não disponível.");
-          return;
-        }
-
-        const activeSheet = workbook.activeSheet;
-        if (activeSheet) {
-          console.log("📄 Nome exibido:", activeSheet.name);
-          console.log("🔹 SlugName:", activeSheet.sheetId || activeSheet.name);
-        } else {
-          console.warn("⚠️ Nenhuma sheet ativa detectada.");
-        }
-      } catch (error) {
-        console.error("❌ Erro ao obter sheet atual:", error);
-      }
-    }
-
-    function iniciarCiclo() {
+      const { embed_url, jwt } = await (await fetch(backendURL)).json();
+      baseUrl = embed_url.split("/views/")[0] + "/views/TVComercial-RaizzCapital_17543562925950/";
+      criarViz(dashboards[currentIndex].view, jwt);
       setInterval(trocarPainel, tempoPorPainel);
     }
 
+    function criarViz(view, jwt) {
+      const container = document.getElementById("vizContainer");
+      container.innerHTML = "";
+      vizElement = document.createElement("tableau-viz");
+      vizElement.src = `${baseUrl}${view}?:embed=yes&:showAppBanner=false`;
+      vizElement.token = jwt;
+      vizElement.toolbar = "hidden";
+      vizElement.hideTabs = true;
+      container.appendChild(vizElement);
+      console.log("Painel carregado:", view);
+    }
+
     async function trocarPainel() {
-      currentDashboardIndex = (currentDashboardIndex + 1) % dashboards.length;
-      const painelAtual = dashboards[currentDashboardIndex];
-      const novoUrl = `https://us-east-1.online.tableau.com/t/anabeatriz-8787706e44/views/TVCaptacao-RaizzCapital_17543951408150/${painelAtual.view}?:embed=yes&:showAppBanner=false`;
-
-      vizElement.src = novoUrl;
-      console.log("🔁 Painel trocado para:", painelAtual.nome);
-
-      vizElement.addEventListener("firstinteractive", () => {
-        mostrarSlugAtual();
-      });
+      currentIndex = (currentIndex + 1) % dashboards.length;
+      const { embed_url, jwt } = await (await fetch(backendURL)).json();
+      const novoPainel = dashboards[currentIndex];
+      criarViz(novoPainel.view, jwt);
+      console.log("🔁 Painel trocado para:", novoPainel.nome);
     }
 
     carregarViz();
-
-    // Recarrega a página a cada 8 minutos
     setTimeout(() => location.reload(true), 480000);
   </script>
 </body>
