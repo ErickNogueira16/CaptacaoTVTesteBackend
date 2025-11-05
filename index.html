@@ -15,7 +15,6 @@
   <script>
     const backendURL = "https://tableau-backend-h83x.onrender.com/get_tableau_url?painel=captacao";
 
-    // ⚠️ Nome amigável + view técnica exata
     const dashboards = [
       { nome: "CAPTACAO | FII DESENV - III", view: "CAPTACAOFIIDESENVIII" },
       { nome: "CAPTACAO | UBERLANDIA", view: "CAPTACAOUberlandia" }
@@ -32,7 +31,6 @@
         if (data.error) throw new Error(data.error);
 
         const { jwt } = data;
-
         const container = document.getElementById("vizContainer");
         container.innerHTML = "";
 
@@ -46,10 +44,36 @@
         vizElement.hideTabs = true;
         container.appendChild(vizElement);
 
+        // Quando o painel terminar de carregar, loga o nome da sheet
+        vizElement.addEventListener("firstinteractive", () => {
+          mostrarSlugAtual();
+        });
+
         iniciarCiclo();
         console.log("✅ Painel inicial:", painelAtual.nome);
       } catch (error) {
         console.error("❌ Erro ao inicializar o Tableau:", error);
+      }
+    }
+
+    async function mostrarSlugAtual() {
+      try {
+        // Espera a API do tableau-viz estar pronta
+        const workbook = vizElement.workbook;
+        if (!workbook) {
+          console.warn("⚠️ Workbook ainda não disponível.");
+          return;
+        }
+
+        const activeSheet = workbook.activeSheet;
+        if (activeSheet) {
+          console.log("📄 Nome exibido:", activeSheet.name);
+          console.log("🔹 SlugName:", activeSheet.sheetId || activeSheet.name);
+        } else {
+          console.warn("⚠️ Nenhuma sheet ativa detectada.");
+        }
+      } catch (error) {
+        console.error("❌ Erro ao obter sheet atual:", error);
       }
     }
 
@@ -64,9 +88,15 @@
 
       vizElement.src = novoUrl;
       console.log("🔁 Painel trocado para:", painelAtual.nome);
+
+      vizElement.addEventListener("firstinteractive", () => {
+        mostrarSlugAtual();
+      });
     }
 
     carregarViz();
+
+    // Recarrega a página a cada 8 minutos
     setTimeout(() => location.reload(true), 480000);
   </script>
 </body>
