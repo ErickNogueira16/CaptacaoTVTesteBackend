@@ -23,7 +23,7 @@
       { nome: "CAPTACAO | UBERLANDIA", view: "CAPTACAOUberlandia" }
     ];
 
-    const tempoPorPainel = 60000; // 60 segundos
+    const tempoPorPainel = 10000;
     let currentIndex = 0;
     let vizElement = null;
 
@@ -34,7 +34,6 @@
     }
 
     function buildEmbedUrl(embed_url, viewSlug) {
-      // Monta a URL de embed correta
       const parts = embed_url.split("/views/");
       const prefix = parts[0] + "/views/";
       const after = parts[1] || "";
